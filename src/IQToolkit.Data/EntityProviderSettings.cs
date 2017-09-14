@@ -35,16 +35,5 @@ namespace IQToolkit.Data
             this.Connection = connection;
             this.Mapping = mapping;
         }
-
-        /// <summary>
-        /// Gets settings from the application configuration (app.config file)
-        /// </summary>
-        public static EntityProviderSettings FromApplicationSettings()
-        {
-            return new EntityProviderSettings(
-                provider: System.Configuration.ConfigurationManager.AppSettings["Provider"],
-                connection: System.Configuration.ConfigurationManager.AppSettings["Connection"],
-                mapping: System.Configuration.ConfigurationManager.AppSettings["Mapping"]);
-        }
     }
 }

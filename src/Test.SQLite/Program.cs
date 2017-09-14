@@ -1,13 +1,11 @@
-﻿// Copyright (c) Microsoft Corporation.  All rights reserved.
-// This source code is made available under the terms of the Microsoft Public License (MS-PL)
-
-using IQToolkit.Data;
+﻿using IQToolkit.Data;
 using IQToolkit.Data.Mapping;
 using IQToolkit.Data.SQLite;
+using System;
 
 namespace Test
 {
-    public class Program
+    class Program
     {
         public static void Main(string[] args)
         {
@@ -19,7 +17,8 @@ namespace Test
             return new SQLiteQueryProvider("Northwind.db3", new AttributeMapping(typeof(Test.NorthwindWithAttributes)));
         }
 
-        public class NorthwindTranslationTests : Test.NorthwindTranslationTests
+        public class NorthwindTranslationTests 
+            : Test.NorthwindTranslationTests
         {
             protected override DbEntityProvider CreateProvider()
             {
@@ -27,7 +26,8 @@ namespace Test
             }
         }
 
-        public class NorthwindExecutionTests : Test.NorthwindExecutionTests
+        public class NorthwindExecutionTests 
+            : Test.NorthwindExecutionTests
         {
             protected override DbEntityProvider CreateProvider()
             {
@@ -35,7 +35,8 @@ namespace Test
             }
         }
 
-        public class NorthwindCUDTests : Test.NorthwindCUDTests
+        public class NorthwindCUDTests 
+            : Test.NorthwindCUDTests
         {
             protected override DbEntityProvider CreateProvider()
             {

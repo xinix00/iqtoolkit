@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data.Common;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using System.IO;
 
 namespace IQToolkit.Data.SQLite
@@ -13,12 +13,12 @@ namespace IQToolkit.Data.SQLite
     /// </summary>
     public class SQLiteQueryProvider : DbEntityProvider
     {
-        private readonly Dictionary<QueryCommand, SQLiteCommand> commandCache = new Dictionary<QueryCommand, SQLiteCommand>();
+        private readonly Dictionary<QueryCommand, SqliteCommand> commandCache = new Dictionary<QueryCommand, SqliteCommand>();
 
         /// <summary>
         /// Constructs a <see cref="SQLiteQueryProvider"/>
         /// </summary>
-        public SQLiteQueryProvider(SQLiteConnection connection, QueryMapping mapping = null, QueryPolicy policy = null)
+        public SQLiteQueryProvider(SqliteConnection connection, QueryMapping mapping = null, QueryPolicy policy = null)
             : base(connection, SQLiteLanguage.Default, mapping, policy)
         {
         }
@@ -34,14 +34,14 @@ namespace IQToolkit.Data.SQLite
         /// <summary>
         /// Creates a <see cref="SQLiteConnection"/> given a connection string or a database file.
         /// </summary>
-        public static SQLiteConnection CreateConnection(string connectionStringOrDatabaseFile)
+        public static SqliteConnection CreateConnection(string connectionStringOrDatabaseFile)
         {
             if (!connectionStringOrDatabaseFile.Contains("="))
             {
                 connectionStringOrDatabaseFile = GetConnectionString(connectionStringOrDatabaseFile);
             }
 
-            return new SQLiteConnection(connectionStringOrDatabaseFile);
+            return new SqliteConnection(connectionStringOrDatabaseFile);
         }
         /// <summary>
         /// Gets a connection string that will access specified the database file.
@@ -49,7 +49,7 @@ namespace IQToolkit.Data.SQLite
         public static string GetConnectionString(string databaseFile)
         {
             databaseFile = Path.GetFullPath(databaseFile);
-            return string.Format("Data Source={0};Pooling=True", databaseFile);
+            return string.Format("Data Source={0};", databaseFile);
         }
 
         /// <summary>
@@ -58,7 +58,7 @@ namespace IQToolkit.Data.SQLite
         public static string GetConnectionString(string databaseFile, string password)
         {
             databaseFile = Path.GetFullPath(databaseFile);
-            return string.Format("Data Source={0};Pooling=True;Password={1};", databaseFile, password);
+            return string.Format("Data Source={0};Password={1};", databaseFile, password);
         }
 
         /// <summary>
@@ -67,7 +67,7 @@ namespace IQToolkit.Data.SQLite
         public static string GetConnectionString(string databaseFile, bool failIfMissing)
         {
             databaseFile = Path.GetFullPath(databaseFile);
-            return string.Format("Data Source={0};Pooling=True;FailIfMissing={1};", databaseFile, failIfMissing ? bool.TrueString : bool.FalseString);
+            return string.Format("Data Source={0};FailIfMissing={1};", databaseFile, failIfMissing ? bool.TrueString : bool.FalseString);
         }
 
         /// <summary>
@@ -76,12 +76,12 @@ namespace IQToolkit.Data.SQLite
         public static string GetConnectionString(string databaseFile, string password, bool failIfMissing)
         {
             databaseFile = Path.GetFullPath(databaseFile);
-            return string.Format("Data Source={0};Pooling=True;Password={1};FailIfMissing={2};", databaseFile, password, failIfMissing ? bool.TrueString : bool.FalseString);
+            return string.Format("Data Source={0};Password={1};FailIfMissing={2};", databaseFile, password, failIfMissing ? bool.TrueString : bool.FalseString);
         }
 
         protected override DbEntityProvider New(DbConnection connection, QueryMapping mapping, QueryPolicy policy)
         {
-            return new SQLiteQueryProvider((SQLiteConnection)connection, mapping, policy);
+            return new SQLiteQueryProvider((SqliteConnection)connection, mapping, policy);
         }
 
         protected override QueryExecutor CreateExecutor()
@@ -101,36 +101,35 @@ namespace IQToolkit.Data.SQLite
 
             protected override DbCommand GetCommand(QueryCommand query, object[] paramValues)
             {
-                SQLiteCommand cmd;
+                SqliteCommand cmd;
 #if false
                 if (!this.provider.commandCache.TryGetValue(query, out cmd))
                 {
-                    cmd = (SQLiteCommand)this.provider.Connection.CreateCommand();
+                    cmd = (SqliteCommand)this.provider.Connection.CreateCommand();
                     cmd.CommandText = query.CommandText;
                     this.SetParameterValues(query, cmd, paramValues);
                     cmd.Prepare();
                     this.provider.commandCache.Add(query, cmd);
                     if (this.provider.Transaction != null)
                     {
-                        cmd = (SQLiteCommand)cmd.Clone();
-                        cmd.Transaction = (SQLiteTransaction)this.provider.Transaction;
+                        cmd = new SqliteCommand(cmd.CommandText, (SqliteConnection)this.provider.Connection, (SqliteTransaction)this.provider.Transaction);
+                        cmd.Transaction = (SqliteTransaction)this.provider.Transaction;
                     }
                 }
                 else
                 {
-                    cmd = (SQLiteCommand)cmd.Clone();
-                    cmd.Transaction = (SQLiteTransaction)this.provider.Transaction;
+                    cmd = new SqliteCommand(cmd.CommandText, (SqliteConnection)this.provider.Connection, (SqliteTransaction)this.provider.Transaction);
                     this.SetParameterValues(query, cmd, paramValues);
                 }
 #else
-                cmd = (SQLiteCommand)this.provider.Connection.CreateCommand();
+                cmd = (SqliteCommand)this.provider.Connection.CreateCommand();
                 cmd.CommandText = query.CommandText;
                 this.SetParameterValues(query, cmd, paramValues);
                 cmd.Prepare();
 
                 if (this.provider.Transaction != null)
                 {
-                    cmd.Transaction = (SQLiteTransaction)this.provider.Transaction;
+                    cmd.Transaction = (SqliteTransaction)this.provider.Transaction;
                 }
 #endif
                 return cmd;
@@ -141,7 +140,12 @@ namespace IQToolkit.Data.SQLite
                 QueryType qt = parameter.QueryType;
                 if (qt == null)
                     qt = this.provider.Language.TypeSystem.GetColumnType(parameter.Type);
-                var p = ((SQLiteCommand)command).Parameters.Add(parameter.Name, ((DbQueryType)qt).DbType, qt.Length);
+                
+                var p = ((SqliteCommand)command).Parameters.Add(
+                    parameter.Name, 
+                    SQLiteTypeSystem.GetSqliteType(((DbQueryType)qt).DbType), 
+                    qt.Length);
+
                 if (qt.Length != 0)
                 {
                     p.Size = qt.Length;

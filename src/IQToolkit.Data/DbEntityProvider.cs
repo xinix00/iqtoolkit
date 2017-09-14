@@ -110,9 +110,10 @@ namespace IQToolkit.Data
         /// <summary>
         /// Create a new <see cref="DbEntityProvider"/> from the specified <see cref="EntityProviderSettings"/>.
         /// </summary>
-        public static DbEntityProvider FromSettings(EntityProviderSettings settings = null)
+        public static DbEntityProvider FromSettings(EntityProviderSettings settings)
         {
-            settings = settings ?? EntityProviderSettings.FromApplicationSettings();
+            if (settings == null)
+                throw new ArgumentNullException(nameof(settings));
 
             DbEntityProvider provider = settings.Provider != null
                 ? From(settings.Provider, settings.Connection)
